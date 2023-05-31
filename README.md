@@ -1,78 +1,28 @@
-# Code for Doubly-Robust Self-Training (the Image Classification Part)
+# Doubly Robust Self-Training
+This repo contains the official implementation of paper "Doubly Robust Self-Training", by Banghua Zhu, Mingyu Ding, Philip Jacobson, Ming Wu, Wei Zhan, Michael Jordan, Jiantao Jiao.
+
+
+### Abstract
+Self-training is an important technique for solving semi-supervised learning problems.  It leverages unlabeled data by generating pseudo-labels and combining them with a limited labeled dataset for training. The effectiveness of self-training heavily relies on the accuracy of these pseudo-labels. In this paper, we introduce doubly robust self-training, a novel semi-supervised algorithm that provably balances between two extremes. When the pseudo-labels are entirely incorrect, our method reduces to a training process solely using labeled data. Conversely, when the pseudo-labels are completely accurate, our method transforms into a training process utilizing all pseudo-labeled data and labeled data, thus increasing the effective sample size. Through empirical evaluations on both the ImageNet dataset for image classification and the nuScenes autonomous driving dataset for 3D object detection, we demonstrate the superiority of the doubly robust loss over the standard self-training baseline.
+
 
 ### Getting Started
-Python3, PyTorch>=1.8.0, torchvision>=0.7.0 are required for the current codebase.
+For the image classification task, please refer to [here](image_classification/README.md).
 
-```shell
-# An example on CUDA 10.2
-pip install torch===1.9.0+cu102 torchvision===0.10.0+cu102 torchaudio===0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
-pip install thop pyyaml fvcore pillow==8.3.2
-```
-
-Other pytorch or CUDA versions should also work, just make sure they are installed correctly!
-
-### Dataset
-- Prepare the ImageNet dataset in the timm format
-```shell
-- DATASET_DIR/
-    - train/
-        - ClassFolder1
-        - ClassFolder2
-        - ...
-    - val/
-        - ClassFolder1
-        - ClassFolder2
-        - ...
-```  
-
-**In this project, the image pseudo label is read directly from the dataset folder (e.g. folder ClassFolder1 means class 1), and the ground truth label is read from the image name (e.g., ClassFolder1/groundtruth_Class2_image1.png means the ground truth belongs to Class2).**
-
-### Training and Validation
-- Set the following ENV variable:
-  ```
-  $MASTER_ADDR: IP address of the node 0 (Not required if you have only one node (machine))
-  $MASTER_PORT: Port used for initializing distributed environment
-  $NODE_RANK: Index of the node
-  $N_NODES: Number of nodes 
-  $NPROC_PER_NODE: Number of GPUs (NOTE: should exactly match local GPU numbers with `CUDA_VISIBLE_DEVICES`)
-  ```
-
-- Training:
-  - Example1 (One machine with 8 GPUs):
-  ```shell
-  python -u -m torch.distributed.launch --nproc_per_node=8 \
-  --nnodes=1 --node_rank=0 --master_port=12345 \
-  train.py DATASET_DIR --model DaViT_tiny --batch-size 128 --lr 1e-3 \
-  --native-amp --clip-grad 1.0 --output OUTPUT_DIR --num-classes 100 --epochs 20 --mixup 0 --cutmix 0 --pseudomode 0
-  ```
-
-  - Example2 (Two machines, each has 8 GPUs):
-  ```shell
-  # Node 1: (IP: 192.168.1.1, and has a free port: 12345)
-  python -u -m torch.distributed.launch --nproc_per_node=8
-  --nnodes=2 --node_rank=0 --master_addr="192.168.1.1"
-  --master_port=12345 train.py DATASET_DIR --model DaViT_tiny --batch-size 128 --lr 2e-3 \
-  --native-amp --clip-grad 1.0 --output OUTPUT_DIR  --num-classes 100 --epochs 20 --mixup 0 --cutmix 0 --pseudomode 0
-
-  # Node 2:
-  python -u -m torch.distributed.launch --nproc_per_node=8
-  --nnodes=2 --node_rank=1 --master_addr="192.168.1.1"
-  --master_port=12345 train.py DATASET_DIR --model DaViT_tiny --batch-size 128 --lr 2e-3 \
-  --native-amp --clip-grad 1.0 --output OUTPUT_DIR  --num-classes 100 --epochs 20 --mixup 0 --cutmix 0 --pseudomode 0
-  ```
-
-**Note that the pseudomode 0 means using the labels according the data folder (Pseudo Only), pseudomode 1 means Pseudo + Labeled, and pseudomode 2 means Doubly Robust.**
+For the 3D object detection task, please refer to [here](3d_detection/README.md).
 
 
-- Validation:
-  ```shell
-  CUDA_VISIBLE_DEVICES=0 python -u validate.py DATASET_DIR --model DaViT_tiny --batch-size 128  \
-  --native-amp  --checkpoint TRAINED_MODEL_PATH
-  ```
+### Results on ImageNet100
+![result](result.png)
 
-- Get Pseudo Labels (then create symlink according to the predicted pseudo labels for doubly robust training):
-  ```shell
-  python -u inference.py DATASET_DIR/train/ --model DaViT_tiny --batch-size 1024 \
-  --checkpoint checkpoint.pth.tar \
-  --num-gpu 8 --num-classes 100
-  ```
+
+### Citation
+If you find this repo useful to your project, please consider citing it with the following bib:
+
+    @article{zhu2023doubly,
+      title={Doubly Robust Self-Training},
+      author={Zhu, Banghua and Ding, Mingyu and Jacobson, Philip and Wu, Ming and Zhan, Wei, and Jordan, Michael and Jiao, Jiantao},
+    }
+
+### Acknowledgement
+Our codebase is built based on [timm](https://github.com/rwightman/pytorch-image-models) and [MMDetection3D](https://github.com/open-mmlab/mmdetection3d). We thank the authors for the nicely organized code!
